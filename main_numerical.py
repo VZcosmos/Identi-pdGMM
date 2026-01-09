@@ -35,7 +35,8 @@ def main():
         mix_type = 'linear'
     else:
         mix_type = 'pw'
-    args.model_dir = 'Nonstandard_basis'
+    args.model_dir = os.path.join("Outputs", args.noise_type)
+    os.makedirs(args.model_dir, exist_ok=True)
     heat_path_est = os.path.join(args.model_dir, 'heatmaps', 'est')
     heat_path_true = os.path.join(args.model_dir, 'heatmaps', 'true')
     heat_path_indep = os.path.join(args.model_dir, 'heatmaps', 'indep')
@@ -106,7 +107,7 @@ def main():
             W_ori = np.loadtxt(W_file, delimiter=',')
 
         if not args.evaluate:
-            z = ut.simulate_linear_sem(W_ori, 5000, 'gauss')
+            z = ut.simulate_linear_sem(W_ori, 5000, args.noise_type)
             Sigma_z = np.cov(z.T)
             Mean = np.mean(z, axis=0)
             sigma = np.sqrt(Sigma_z.diagonal())
@@ -188,9 +189,9 @@ def main():
 
             if indep:
                 Diag_B = ut.simulate_dag(args.z_n, 0, args.graph_type)
-                z = ut.simulate_linear_sem(Diag_B, size, 'gauss')
+                z = ut.simulate_linear_sem(Diag_B, size, args.noise_type)
             else:
-                z = ut.simulate_linear_sem(W_ori, size, 'gauss')
+                z = ut.simulate_linear_sem(W_ori, size, args.noise_type)
 
             if not Mask:
                 z = torch.tensor(z)
@@ -289,11 +290,11 @@ def main():
                 loss_rec = criterion(reconstructed, data)
 
                 # dimension alignment
-                mvn = D.multivariate_normal.MultivariateNormal(torch.zeros(args.z_n).to(device),
-                                                               torch.eye(args.z_n).to(device))
-                loss_prior = mvn.log_prob(z_hat).mean()
-                loss = loss_rec - loss_prior
-                # loss = loss_rec
+                # mvn = D.multivariate_normal.MultivariateNormal(torch.zeros(args.z_n).to(device),
+                #                                                torch.eye(args.z_n).to(device))
+                # loss_prior = mvn.log_prob(z_hat).mean()
+                # loss = loss_rec - loss_prior
+                loss = loss_rec
 
                 # Backward pass
                 optimizer.zero_grad()
@@ -304,7 +305,7 @@ def main():
 
                 if epoch % 250 == 1:
                     print('loss_rec', loss_rec)
-                    print('loss_prior', loss_prior)
+                    # print('loss_prior', loss_prior)
                     mcc, cor_m = MCC(z_hat, data_z, args.z_n)
                     mcc = mcc / args.z_n
                     print('mcc:', mcc)
@@ -348,7 +349,9 @@ def main():
                 print('after stage 1 R2:', linear_disentanglement_score)
 
         R2.append(linear_disentanglement_score)
-        fileobj = open(args.model_dir + '_stage1.csv', 'a+')
+        csv_path = os.path.join(args.model_dir, "stage1_r2.csv")
+        fileobj = open(csv_path, "a+")
+        # fileobj = open(args.model_dir + '_stage1.csv', 'a+') # stage1 R2 of one seed
         writer = csv.writer(fileobj)
         wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, args.seed,
                linear_disentanglement_score]
@@ -359,7 +362,9 @@ def main():
         mcc = mcc / args.z_n
         print('after stage 1 mcc:', mcc)
         MCC_stage1.append(mcc)
-        fileobj = open(args.model_dir + '_stage1_mcc.csv', 'a+')
+        csv_path = os.path.join(args.model_dir, "stage1_mcc.csv")
+        fileobj = open(csv_path, "a+")
+        # fileobj = open(args.model_dir + '_stage1_mcc.csv', 'a+') # stage1 MCC of one seed
         writer = csv.writer(fileobj)
         wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, args.seed,
                mcc]
@@ -376,8 +381,8 @@ def main():
                 z_hat = g(inputs)
                 x_hat = f_hat(z_hat)
 
-                loss = self.criterion(x_hat, inputs)
-                ineq_defect = torch.sum(torch.abs(z_hat)) / args.batch_size / args.z_n - args.sparse_level
+                loss = self.criterion(x_hat, inputs) ### Eq4 ###
+                ineq_defect = torch.sum(torch.abs(z_hat)) / args.batch_size / args.z_n - args.sparse_level ### Eq5 ###
 
                 return cooper.CMPState(loss=loss, ineq_defect=ineq_defect, eq_defect=None)
 
@@ -497,7 +502,9 @@ def main():
         mcc = mcc / args.z_n
         print('After stage 2: ', mcc)
 
-        fileobj = open(args.model_dir + '.csv', 'a+')
+        csv_path = os.path.join(args.model_dir, "stage2_mcc.csv")
+        fileobj = open(csv_path, "a+")
+        # fileobj = open(args.model_dir + '.csv', 'a+') # stage2 MCC of one seed
         writer = csv.writer(fileobj)
         wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, args.seed, mcc]
         writer.writerow(wri)
@@ -561,7 +568,9 @@ def main():
         mcc_indep, cor_indep = MCC(z_indep, hz_indep, args.z_n)
         mcc_indep = mcc_indep / args.z_n
 
-        fileobj = open(args.model_dir + '_independent_test.csv', 'a+')
+        csv_path = os.path.join(args.model_dir, "stage2_mcc_indep.csv")
+        fileobj = open(csv_path, "a+")
+        # fileobj = open(args.model_dir + '_independent_test.csv', 'a+') # stage2 MCC_indep of one seed
         writer = csv.writer(fileobj)
         wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, args.seed,
                mcc_indep]
@@ -590,28 +599,36 @@ def main():
 
         print('finished one random seeds!')
 
-    fileobj = open('SUM_MCC_' + args.model_dir + '.csv', 'a+')
+    csv_path = os.path.join(args.model_dir, "SUM_stage2_mcc.csv")
+    fileobj = open(csv_path, "a+")
+    # fileobj = open('SUM_MCC_' + args.model_dir + '.csv', 'a+')
     writer = csv.writer(fileobj)
     wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, np.mean(mcc_scores),
            np.std(mcc_scores)]
     writer.writerow(wri)
     fileobj.close()
 
-    fileobj = open('SUM_R2_' + args.model_dir + '.csv', 'a+')
+    csv_path = os.path.join(args.model_dir, "SUM_stage1_r2.csv")
+    fileobj = open(csv_path, "a+")
+    # fileobj = open('SUM_R2_' + args.model_dir + '.csv', 'a+')
     writer = csv.writer(fileobj)
     wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, np.mean(R2),
            np.std(R2)]
     writer.writerow(wri)
     fileobj.close()
 
-    fileobj = open('SUM_INDE_' + args.model_dir + '.csv', 'a+')
+    csv_path = os.path.join(args.model_dir, "SUM_stage2_mcc_indep.csv")
+    fileobj = open(csv_path, "a+")
+    # fileobj = open('SUM_INDE_' + args.model_dir + '.csv', 'a+')
     writer = csv.writer(fileobj)
     wri = [args.rotation, args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense,
            np.mean(mcc_indep_scores), np.std(mcc_indep_scores)]
     writer.writerow(wri)
     fileobj.close()
 
-    fileobj = open('SUM_MCC_stage1_' + args.model_dir + '.csv', 'a+')
+    csv_path = os.path.join(args.model_dir, "SUM_stage1_mcc.csv")
+    fileobj = open(csv_path, "a+")
+    # fileobj = open('SUM_MCC_stage1_' + args.model_dir + '.csv', 'a+')
     writer = csv.writer(fileobj)
     wri = [args.distance, args.n_mixing_layer, args.z_n, args.nn, args.mask_dense, args.DAG_dense, np.mean(MCC_stage1),
            np.std(MCC_stage1)]
@@ -634,7 +651,7 @@ def parse_args():
     parser.add_argument("--evaluate", action='store_true')
     parser.add_argument("--resume", action='store_true')
     parser.add_argument("--causal", action="store_false")
-    parser.add_argument("--seeds", type=int,  default=[2])
+    parser.add_argument("--seeds", type=int, nargs="+", default=[2])
     parser.add_argument("--scm-type", type=str, default='linear', choices=['linear', 'nonlinear'])
     parser.add_argument("--noise-type", type=str, default="gauss", choices=['gauss', 'exp', 'gumbel'])
     parser.add_argument("--lr_redu_linear", type=float, default=1e-4)

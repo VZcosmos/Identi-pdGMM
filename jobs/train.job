@@ -2,11 +2,11 @@
 
 #SBATCH --partition=gpu_a100
 #SBATCH --gpus=1
-#SBATCH --job-name=env
+#SBATCH --job-name=train
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
-#SBATCH --time=00:30:00
-#SBATCH --output=logs/env_%j.out
+#SBATCH --time=05:00:00
+#SBATCH --output=logs/train_%j.out
 
 module purge
 module load 2025
@@ -26,4 +26,4 @@ Gdense=1
 Mdense=50  
 distance=0.0  
 m=10  
-python main_numerical.py --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+python main_numerical.py --seeds 42 --noise-type 'gumbel' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
