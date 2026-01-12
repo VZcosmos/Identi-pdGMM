@@ -35,7 +35,13 @@ def main():
         mix_type = 'linear'
     else:
         mix_type = 'pw'
-    args.model_dir = os.path.join("Outputs", args.noise_type)
+    # args.model_dir = os.path.join("Outputs", args.noise_type)
+    args.model_dir = os.path.join(
+        "Outputs",
+        f"noise-{args.noise_type}"
+        f"_stage1-{args.loss_prior_stage1}"
+        f"_stage2-{args.loss_prior_stage2}"
+    )
     os.makedirs(args.model_dir, exist_ok=True)
     heat_path_est = os.path.join(args.model_dir, 'heatmaps', 'est')
     heat_path_true = os.path.join(args.model_dir, 'heatmaps', 'true')
@@ -130,7 +136,7 @@ def main():
                 # Set the first rho*n indices to 1
                 batch_data[i, indices[:rho]] = 1
 
-            return batch_data
+            return batch_data # [batch_size, vector_dimension]
 
         if args.mask_dense == 1:
             ac = 1
@@ -140,6 +146,7 @@ def main():
             ac = int(args.z_n * 0.75)
 
         if args.mask_size > 1:
+            # [args.mask_size * args.z_n, args.z_n]
             masks = generate_rhohot_batch(args.mask_size * args.z_n, args.z_n, ac)
         else:
             # when mask size is relatively low, artificially design masks to ensure sufficient index variability assumption
@@ -147,7 +154,7 @@ def main():
             masks = (np.tril(masks, -args.z_n - 1 + ac) + np.tril(np.triu(masks), ac - 1)).tolist()
 
         masks = np.unique(masks, axis=0)  # unifying the repeat masks
-        num_unique_masks = masks.shape[0]
+        num_unique_masks = masks.shape[0] # [num_unique_masks, args.z_n]
         masks = masks.tolist()
 
 
@@ -199,8 +206,9 @@ def main():
                 z = z.to(device)
                 return z
 
-            z = torch.tensor(z)
+            z = torch.tensor(z) # [num of samples, z_n]
 
+            # divide [num of samples, z_n] into k groups of [mini_batch, z_n], each group uses the same mask
             mini_batch = size // num_unique_masks
             for k in range(num_unique_masks):
                 mask = np.array(masks[k])
@@ -279,7 +287,7 @@ def main():
                 total_loss = 0
 
                 # Forward pass
-                data_z = sample_whole_latent(size=args.batch_size)
+                data_z = sample_whole_latent(size=args.batch_size) # [bs, z_n]
 
                 data = f(data_z)
 
@@ -294,7 +302,34 @@ def main():
                 #                                                torch.eye(args.z_n).to(device))
                 # loss_prior = mvn.log_prob(z_hat).mean()
                 # loss = loss_rec - loss_prior
-                loss = loss_rec
+                # loss = loss_rec
+                if args.loss_prior_stage1: # if use loss_prior for stage1
+                    if args.noise_type == 'gauss': # mean=0, cov=I
+                        prior = D.multivariate_normal.MultivariateNormal(
+                            torch.zeros(args.z_n).to(device),
+                            torch.eye(args.z_n).to(device)
+                        )
+                        loss_prior = prior.log_prob(z_hat).mean()
+
+                    elif args.noise_type == 'exp': # rate=1
+                        prior = D.exponential.Exponential(
+                            torch.ones(args.z_n).to(device)
+                        )
+                        loss_prior = prior.log_prob(z_hat).sum(dim=-1).mean()
+
+                    elif args.noise_type == 'gumbel': # loc=0, scale=1
+                        prior = D.gumbel.Gumbel(
+                            torch.zeros(args.z_n).to(device),
+                            torch.ones(args.z_n).to(device)
+                        )
+                        loss_prior = prior.log_prob(z_hat).sum(dim=-1).mean()
+
+                    else:
+                        raise ValueError(f"Unsupported noise_type: {args.noise_type}")
+                    
+                    loss = loss_rec - loss_prior
+                else:
+                    loss = loss_rec
 
                 # Backward pass
                 optimizer.zero_grad()
@@ -305,7 +340,8 @@ def main():
 
                 if epoch % 250 == 1:
                     print('loss_rec', loss_rec)
-                    # print('loss_prior', loss_prior)
+                    if args.loss_prior_stage1:
+                        print('loss_prior', loss_prior)
                     mcc, cor_m = MCC(z_hat, data_z, args.z_n)
                     mcc = mcc / args.z_n
                     print('mcc:', mcc)
@@ -373,15 +409,116 @@ def main():
 
         class Constrained_DE(cooper.ConstrainedMinimizationProblem):
             def __init__(self):
-                self.criterion = nn.MSELoss(reduction='mean')
+                self.criterion = nn.MSELoss(reduction='mean') ### or sum? ###
 
                 super().__init__(is_constrained=True)
+            
+            # def compute_loss(self, x, x_hat, z_hat):
+            #     loss = self.criterion(x_hat, x)
+
+            #     if not args.loss_prior_stage2:
+            #         return loss
+
+            #     mini_batch = args.batch_size // len(masks)
+            #     stat_loss = 0.0
+
+            #     # if args.oracle == 'oracle':
+            #     #     log_var_prior = torch.tensor(masks).to(device)
+            #     #     log_var_prior[log_var_prior == 0] = -10
+
+            #     ### why mu_prior is 2? ###
+            #     mu_prior = torch.ones(args.nn).to(device) * 2
+
+            #     if args.noise_type == 'gauss':
+            #         target_skew = 0.0
+            #         target_kurt = 0.0
+            #     elif args.noise_type == 'exp':
+            #         target_skew = 2.0
+            #         target_kurt = 6.0
+            #     elif args.noise_type == 'gumbel':
+            #         target_skew = 1.14
+            #         target_kurt = 2.4
+            #     else:
+            #         raise ValueError(f"Unsupported noise_type: {args.noise_type}")
+
+            #     for k in range(len(masks)):
+
+            #         if k == len(masks) - 1:
+            #             z_hat_k = z_hat[k * mini_batch:, :]
+            #         else:
+            #             z_hat_k = z_hat[k * mini_batch:(k + 1) * mini_batch, :]
+
+            #         # center
+            #         diffs = z_hat_k - mu_prior # [mini_batch, z_n]
+
+            #         # compute std
+            #         # if args.oracle == 'oracle':
+            #         #     std = (log_var_prior[k, :] / 2).exp()
+            #         # else:
+            #         var = torch.mean(torch.pow(diffs, 2.0))
+            #         std = torch.pow(var, 0.5)
+            #         zscores = diffs / (std + 1e-9) # [mini_batch, z_n]
+
+            #         skews = torch.mean(torch.pow(zscores, 3.0), dim=0) # [z_n]
+            #         kurtoses = torch.mean(torch.pow(zscores, 4.0), dim=0) # [z_n]
+
+            #         stat_loss += (torch.mean(torch.abs(skews - target_skew)) + torch.mean(torch.abs(kurtoses - target_kurt)))
+
+            #     return loss + stat_loss
+
+            # Vectorized version, should be faster
+            def compute_loss(self, x, x_hat, z_hat):
+                loss = self.criterion(x_hat, x)
+
+                if not args.loss_prior_stage2:
+                    return loss
+
+                B, z_n = z_hat.shape
+                K = len(masks)
+                mini_batch = B // K
+
+                # [K * mini_batch, z_n]
+                z_hat = z_hat[: K * mini_batch]
+
+                # [K, mini_batch, z_n]
+                z_hat_g = z_hat.view(K, mini_batch, z_n)
+
+                # mu_prior: [1, 1, z_n]
+                mu_prior = torch.ones(1, 1, z_n, device=z_hat.device) * 2
+
+                diffs = z_hat_g - mu_prior  # [K, mini_batch, z_n]
+
+                var = torch.mean(diffs ** 2, dim=(1, 2), keepdim=True)  # [K,1,1]
+                std = torch.sqrt(var + 1e-9)
+
+                zscores = diffs / std  # [K, mini_batch, z_n]
+
+                skews = torch.mean(zscores ** 3, dim=1)       # [K, z_n]
+                kurtoses = torch.mean(zscores ** 4, dim=1)    # [K, z_n]
+
+                if args.noise_type == 'gauss':
+                    target_skew, target_kurt = 0.0, 0.0
+                elif args.noise_type == 'exp':
+                    target_skew, target_kurt = 2.0, 6.0
+                elif args.noise_type == 'gumbel':
+                    target_skew, target_kurt = 1.14, 2.4
+                else:
+                    raise ValueError
+
+                # instead of doing mean on [z_n] then sum k groups, do mean on [k, z_n]
+                stat_loss = (
+                    torch.mean(torch.abs(skews - target_skew)) +
+                    torch.mean(torch.abs(kurtoses - target_kurt))
+                )
+
+                return loss + stat_loss
 
             def closure(self, inputs):
                 z_hat = g(inputs)
                 x_hat = f_hat(z_hat)
 
-                loss = self.criterion(x_hat, inputs) ### Eq4 ###
+                # loss = self.criterion(x_hat, inputs) ### Eq4 ###
+                loss = self.compute_loss(inputs, x_hat, z_hat)
                 ineq_defect = torch.sum(torch.abs(z_hat)) / args.batch_size / args.z_n - args.sparse_level ### Eq5 ###
 
                 return cooper.CMPState(loss=loss, ineq_defect=ineq_defect, eq_defect=None)
@@ -446,6 +583,8 @@ def main():
 
         total_loss_values = []
         global_step = len(total_loss_values) + 1
+        mcc_log = []
+        step_log = []
 
         while (
                 global_step <= args.n_steps
@@ -485,6 +624,8 @@ def main():
                     print(global_step)
                     print('estimate_mcc')
                     print(mcc)
+                    mcc_log.append(mcc)
+                    step_log.append(global_step)
 
                     save_path = os.path.join(args.save_dir, 'g.pth')
                     torch.save(g.state_dict(), save_path)
@@ -495,7 +636,19 @@ def main():
             if mcc > 0.995:
                 break
 
-        # Training loop
+        # draw MCC-step fig
+        plt.figure()
+        plt.plot(step_log, mcc_log)
+        plt.xlabel("Global Steps")
+        plt.ylabel("Estimated MCC")
+        plt.title("Stage 2: MCC vs Training Steps")
+
+        os.makedirs(args.model_dir, exist_ok=True)
+        fig_path = os.path.join(args.model_dir, "stage2_mcc_curve.png")
+        plt.savefig(fig_path, dpi=300, bbox_inches="tight")
+        plt.close()
+
+        # post-training eval
         z_true = sample_whole_latent(args.batch_size)
         x_batch = g(linearredu.encoder(f(z_true)))
         mcc, cor_m = MCC(z_true, x_batch, args.z_n)
@@ -670,6 +823,8 @@ def parse_args():
     parser.add_argument("--save-dir", type=str, default="")
     parser.add_argument("--aug-lag-coefficient", type=float, default=0.00)
     parser.add_argument("--sparse-level", type=float, default=0.01)
+    parser.add_argument("--loss_prior_stage1", action="store_true")
+    parser.add_argument("--loss_prior_stage2", action="store_true")
 
     args = parser.parse_args()
 
