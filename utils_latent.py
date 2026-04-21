@@ -99,6 +99,9 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
         if sem_type == 'gauss':
             z = np.random.normal(scale=scale, size=n)
             x = X @ w + z
+        elif sem_type == 'cauchy':
+            z = scale * np.random.standard_cauchy(size=n)
+            x = X @ w + z
         elif sem_type == 'exp':
             z = np.random.exponential(scale=scale, size=n)
             x = X @ w + z
@@ -128,6 +131,7 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
     if not is_dag(W):
         raise ValueError('W must be a DAG')
     if np.isinf(n):  # population risk for linear gauss SEM
+    # not applicable for cauchy since it has infinite variance, but we also only test the finite n, so skip this safely
         if sem_type == 'gauss':
             # make 1/d X'X = true cov
             X = np.sqrt(d) * np.diag(scale_vec) @ np.linalg.inv(np.eye(d) - W)
@@ -145,7 +149,7 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
     return X
 
 
-def simulate_nonlinear_sem(B, W1, W2, n, sem_type, noise_scale=None):
+def simulate_nonlinear_sem(B, W1, W2, n, sem_type, noise_scale=None): # need affine closure assumption, so skip non-linear SCM for cauchy
     """Simulate samples from nonlinear SEM.
 
     Args:

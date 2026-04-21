@@ -38,9 +38,9 @@ def main():
     # args.model_dir = os.path.join("Outputs", args.noise_type)
     args.model_dir = os.path.join(
         "Outputs",
-        f"noise-{args.noise_type}"
-        f"_stage1-{args.loss_prior_stage1}"
-        f"_stage2-{args.loss_prior_stage2}"
+        f"{args.noise_type}"
+        f"_s1-{args.loss_prior_stage1}"
+        f"_s2-{args.loss_prior_stage2}"
     )
     os.makedirs(args.model_dir, exist_ok=True)
     heat_path_est = os.path.join(args.model_dir, 'heatmaps', 'est')
@@ -304,7 +304,7 @@ def main():
                 # loss = loss_rec - loss_prior
                 # loss = loss_rec
                 if args.loss_prior_stage1: # if use loss_prior for stage1
-                    if args.noise_type == 'gauss': # mean=0, cov=I
+                    if args.noise_type == 'gauss': # mean=0, cov=I, indep
                         prior = D.multivariate_normal.MultivariateNormal(
                             torch.zeros(args.z_n).to(device),
                             torch.eye(args.z_n).to(device)
@@ -409,62 +409,9 @@ def main():
 
         class Constrained_DE(cooper.ConstrainedMinimizationProblem):
             def __init__(self):
-                self.criterion = nn.MSELoss(reduction='mean') ### or sum? ###
+                self.criterion = nn.MSELoss(reduction='mean')
 
                 super().__init__(is_constrained=True)
-            
-            # def compute_loss(self, x, x_hat, z_hat):
-            #     loss = self.criterion(x_hat, x)
-
-            #     if not args.loss_prior_stage2:
-            #         return loss
-
-            #     mini_batch = args.batch_size // len(masks)
-            #     stat_loss = 0.0
-
-            #     # if args.oracle == 'oracle':
-            #     #     log_var_prior = torch.tensor(masks).to(device)
-            #     #     log_var_prior[log_var_prior == 0] = -10
-
-            #     ### why mu_prior is 2? ###
-            #     mu_prior = torch.ones(args.nn).to(device) * 2
-
-            #     if args.noise_type == 'gauss':
-            #         target_skew = 0.0
-            #         target_kurt = 0.0
-            #     elif args.noise_type == 'exp':
-            #         target_skew = 2.0
-            #         target_kurt = 6.0
-            #     elif args.noise_type == 'gumbel':
-            #         target_skew = 1.14
-            #         target_kurt = 2.4
-            #     else:
-            #         raise ValueError(f"Unsupported noise_type: {args.noise_type}")
-
-            #     for k in range(len(masks)):
-
-            #         if k == len(masks) - 1:
-            #             z_hat_k = z_hat[k * mini_batch:, :]
-            #         else:
-            #             z_hat_k = z_hat[k * mini_batch:(k + 1) * mini_batch, :]
-
-            #         # center
-            #         diffs = z_hat_k - mu_prior # [mini_batch, z_n]
-
-            #         # compute std
-            #         # if args.oracle == 'oracle':
-            #         #     std = (log_var_prior[k, :] / 2).exp()
-            #         # else:
-            #         var = torch.mean(torch.pow(diffs, 2.0))
-            #         std = torch.pow(var, 0.5)
-            #         zscores = diffs / (std + 1e-9) # [mini_batch, z_n]
-
-            #         skews = torch.mean(torch.pow(zscores, 3.0), dim=0) # [z_n]
-            #         kurtoses = torch.mean(torch.pow(zscores, 4.0), dim=0) # [z_n]
-
-            #         stat_loss += (torch.mean(torch.abs(skews - target_skew)) + torch.mean(torch.abs(kurtoses - target_kurt)))
-
-            #     return loss + stat_loss
 
             # Vectorized version, should be faster
             def compute_loss(self, x, x_hat, z_hat):
@@ -483,7 +430,7 @@ def main():
                 # [K, mini_batch, z_n]
                 z_hat_g = z_hat.view(K, mini_batch, z_n)
 
-                # mu_prior: [1, 1, z_n]
+                # mu_prior = 2: shape [1, 1, z_n]
                 mu_prior = torch.ones(1, 1, z_n, device=z_hat.device) * 2
 
                 diffs = z_hat_g - mu_prior  # [K, mini_batch, z_n]
@@ -510,6 +457,10 @@ def main():
                     torch.mean(torch.abs(skews - target_skew)) +
                     torch.mean(torch.abs(kurtoses - target_kurt))
                 )
+                # stat_loss = (
+                #     torch.mean(torch.abs(skews - target_skew), dim=1).sum() +
+                #     torch.mean(torch.abs(kurtoses - target_kurt), dim=1).sum()
+                # )
 
                 return loss + stat_loss
 
@@ -806,7 +757,7 @@ def parse_args():
     parser.add_argument("--causal", action="store_false")
     parser.add_argument("--seeds", type=int, nargs="+", default=[2])
     parser.add_argument("--scm-type", type=str, default='linear', choices=['linear', 'nonlinear'])
-    parser.add_argument("--noise-type", type=str, default="gauss", choices=['gauss', 'exp', 'gumbel'])
+    parser.add_argument("--noise-type", type=str, default="gauss", choices=['gauss', 'cauchy', 'exp', 'gumbel'])
     parser.add_argument("--lr_redu_linear", type=float, default=1e-4)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--batch-size", type=int, default=6144)
