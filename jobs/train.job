@@ -5,7 +5,7 @@
 #SBATCH --job-name=train
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
-#SBATCH --time=12:00:00
+#SBATCH --time=6:00:00
 #SBATCH --output=logs/train_%j.out
 
 module purge
@@ -29,5 +29,8 @@ m=10
 # python main_numerical.py --seeds 42 --noise-type 'gumbel' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'exp' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage1 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
-python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage2 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage2 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'exp' --loss_prior_stage1 --loss_prior_stage2 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+
+python main_numerical.py --seeds 42 --noise-type 'cauchy' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+python main_numerical.py --seeds 42 --noise-type 'cauchy' --loss_prior_stage1 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"

@@ -311,6 +311,13 @@ def main():
                         )
                         loss_prior = prior.log_prob(z_hat).mean()
 
+                    elif args.noise_type == 'cauchy': # loc=0, scale=1, assume indep components, thus can sample from univa package, but also expect this loss to be bad for performance
+                        prior = D.cauchy.Cauchy(
+                            torch.zeros(args.z_n).to(device),
+                            torch.ones(args.z_n).to(device)
+                        )
+                        loss_prior = prior.log_prob(z_hat).sum(dim=-1).mean()
+
                     elif args.noise_type == 'exp': # rate=1
                         prior = D.exponential.Exponential(
                             torch.ones(args.z_n).to(device)
