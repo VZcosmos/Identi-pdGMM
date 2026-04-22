@@ -101,6 +101,7 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
             x = X @ w + z
         elif sem_type == 'cauchy':
             z = scale * np.random.standard_cauchy(size=n)
+            z = np.clip(z, -10, 10)
             x = X @ w + z
         elif sem_type == 'exp':
             z = np.random.exponential(scale=scale, size=n)

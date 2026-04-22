@@ -19,6 +19,7 @@ import torch.distributions as D
 import torch.optim as optim
 from sklearn.preprocessing import StandardScaler
 import disentanglement_utils
+import wandb
 
 use_cuda = torch.cuda.is_available()
 if use_cuda:
@@ -31,6 +32,11 @@ print("device:", device)
 
 def main():
     args, parser = parse_args()
+    wandb.init(
+    project="thesis",
+    name=f"{args.noise_type}_seed{args.seeds}",
+    config=vars(args)  # logs all hyperparameters
+)
     if args.n_mixing_layer == 1:
         mix_type = 'linear'
     else:
@@ -275,7 +281,14 @@ def main():
                 x = self.decoder(x)
                 return x
 
-        criterion = nn.MSELoss()  # Mean Squared Error for reconstruction
+        # criterion = nn.MSELoss()  # Mean Squared Error for reconstruction
+        if args.noise_type == 'gauss':
+            criterion = nn.MSELoss()
+        elif args.noise_type == 'cauchy':
+            # criterion = nn.L1Loss()
+            criterion = nn.MSELoss()
+        else:
+            criterion = nn.MSELoss()
         linearredu = LinearRedu().to(device)
 
         optimizer = optim.Adam(linearredu.parameters(), lr=args.lr_redu_linear)
@@ -341,7 +354,20 @@ def main():
                 # Backward pass
                 optimizer.zero_grad()
                 loss.backward()
+
+                total_norm = 0
+                for p in model.parameters():
+                    if p.grad is not None:
+                        total_norm += p.grad.norm().item()
+
+                wandb.log({
+                    "stage1/grad_norm": total_norm
+                })
+
                 optimizer.step()
+                wandb.log({
+                    "stage1/loss_rec": loss_rec.item()
+                })
 
                 total_loss += loss.item()
 
@@ -352,6 +378,10 @@ def main():
                     mcc, cor_m = MCC(z_hat, data_z, args.z_n)
                     mcc = mcc / args.z_n
                     print('mcc:', mcc)
+                    wandb.log({
+                        "stage1/z_hat_max_abs": z_hat.abs().max().item(),
+                        "stage1/mcc": mcc
+                    })
 
                     save_path = os.path.join(args.save_dir, 'linearredu.pth')
                     torch.save(model.state_dict(), save_path)
@@ -416,7 +446,14 @@ def main():
 
         class Constrained_DE(cooper.ConstrainedMinimizationProblem):
             def __init__(self):
-                self.criterion = nn.MSELoss(reduction='mean')
+                # self.criterion = nn.MSELoss(reduction='mean')
+                if args.noise_type == 'gauss':
+                    self.criterion = nn.MSELoss(reduction='mean')
+                elif args.noise_type == 'cauchy':
+                    # self.criterion = nn.L1Loss(reduction='mean')
+                    self.criterion = nn.MSELoss(reduction='mean')
+                else:
+                    self.criterion = nn.MSELoss(reduction='mean')
 
                 super().__init__(is_constrained=True)
 
@@ -561,6 +598,19 @@ def main():
                 formulation.custom_backward(lagrangian)
                 coop_vade.step(cmp_vade.closure, data)
 
+                with torch.no_grad():
+                    z_hat_train = g(data)
+                    x_hat_train = f_hat(z_hat_train)
+
+                    loss_rec = cmp_vade.criterion(x_hat_train, data)
+
+                    wandb.log({
+                        "stage2/step": global_step,
+                        "stage2/loss_rec": loss_rec.item(),
+                        "stage2/z_hat_max_abs": z_hat_train.abs().max().item(),
+                        "stage2/z_hat_mean_abs": z_hat_train.abs().mean().item(),
+                    })
+
             if global_step % args.n_log_steps == 1 or global_step == args.n_steps:
                 f_hat.eval()
                 g.eval()
@@ -573,6 +623,11 @@ def main():
                 mcc, cor_m = MCC(z_disentanglement, hz_disentanglement, args.z_n)
                 mcc = mcc / args.z_n
                 mind = linear_sum_assignment(-1 * cor_m)[1]
+
+                wandb.log({
+                    "stage2/step": global_step,
+                    "stage2/mcc": mcc
+                })
 
                 if not args.evaluate:
                     fileobj = open(results_file, 'a+')
@@ -745,6 +800,8 @@ def main():
            np.std(MCC_stage1)]
     writer.writerow(wri)
     fileobj.close()
+
+    wandb.finish()
 
 
 def parse_args():
