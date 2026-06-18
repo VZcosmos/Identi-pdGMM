@@ -1,25 +1,8 @@
-# codes
+# Code for Identifiability via Sparsity for CAuchy causal variables (ISCA) developed from pdGMM @danru https://arxiv.org/pdf/2604.13218
 
 ## Environment
-Tested on Python 3.9.16.
-
-```
-pip install -r requirements.txt
-```
+Please check jobs/env.job
 
 ## Numerical experiment
-```
-zn=10 #number of latent variable
-theta=0 #rotation angle of basis
-Gdense=0.2 #graph density
-Mdense=0.3  #rho
-distance=0.0  #delta in translation vector
-m=5  #number of MLP layer for mixing function 
-python main_numerical.py --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
-```
-
-## Image-based experiment
-```
-# multi-balls with stationary position
-python main_balls.py
-```
+To run ISCA, please check jobs/ours.job
+To run two baseline models, please check jobs/danru.job https://arxiv.org/pdf/2403.08335 and jobs/vade.job https://arxiv.org/pdf/1611.05148 https://arxiv.org/pdf/2206.10044
