@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=wandb_sweep
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=6:00:00
+#SBATCH --output=logs/agent_%j.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate expo
+cd /home/xzhou2/Identi-pdGMM
+
+export WANDB_API_KEY=
+# wandb sweep sweep.yaml
+# wandb agent vz/Identi-pdGMM/yp4dj2qz
+# wandb agent vz/Identi-pdGMM/sz6k2mka
+# wandb agent vz/Identi-pdGMM/ykmxfymb
+# wandb agent vz/Identi-pdGMM/5h4phpp4
+
+# wandb agent vz/Identi-pdGMM/tvpjsnyr
+# wandb agent vz/Identi-pdGMM/r0k9v9ds
+# wandb agent vz/Identi-pdGMM/74qw12g2
+
+# wandb agent vz/Identi-pdGMM/4975uvwf
+
+# wandb agent vz/Identi-pdGMM/8lpj9d0g
+# wandb agent vz/Identi-pdGMM/497q72nj
+# wandb agent vz/Identi-pdGMM/qmptzyv0
+
+# wandb agent vz/Identi-pdGMM/apusgs26
+# wandb agent vz/Identi-pdGMM/zfi26nrh
+wandb agent vz/Identi-pdGMM/avm54kc7

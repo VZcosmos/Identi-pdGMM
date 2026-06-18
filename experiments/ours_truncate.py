@@ -36,16 +36,19 @@ def main():
 
     args.x_n = args.z_n
     args.nn = args.z_n
+    args.truncate=True
 
     if args.n_mixing_layer == 1:
         mix_type = 'linear'
+        setting_name = 'Simple'
     else:
         mix_type = 'pw'
+        setting_name = 'Complicate'
     # args.model_dir = os.path.join("Outputs", args.noise_type)
     args.model_dir = os.path.join(
         "Outputs",
-        "Tune_Ours", # model
-        "Simple", # setting
+        "Ours_trunc", # model
+        setting_name,
         f"{args.noise_type}"
     )
     os.makedirs(args.model_dir, exist_ok=True)
@@ -67,8 +70,8 @@ def main():
 
     for args.seed in args.seeds:
         wandb.init(
-            project="thesis",
-            name=f"Tune_Ours_Simple_{args.noise_type}_seed[{args.seed}]",
+            project="thesis_final",
+            name=f"Ours_trunc_{setting_name}_{args.noise_type}_seed[{args.seed}]",
             config=vars(args),
             reinit=True
         )
@@ -165,7 +168,7 @@ def main():
                 mask_values = np.zeros(args.z_n)
                 np.savetxt(mask_values_file, mask_values, delimiter=',')
             else:
-                z = ut.simulate_linear_sem(W_ori, 5000, args.noise_type, args.noise_scale)
+                z = ut.simulate_linear_sem(W_ori, 5000, args.noise_type, args.noise_scale, truncate=args.truncate)
                 Sigma_z = np.cov(z.T)
                 Mean = np.mean(z, axis=0)
                 sigma = np.sqrt(Sigma_z.diagonal())
@@ -250,9 +253,9 @@ def main():
 
             if indep:
                 Diag_B = ut.simulate_dag(args.z_n, 0, args.graph_type)
-                z = ut.simulate_linear_sem(Diag_B, size, args.noise_type, args.noise_scale)
+                z = ut.simulate_linear_sem(Diag_B, size, args.noise_type, args.noise_scale, truncate=args.truncate)
             else:
-                z = ut.simulate_linear_sem(W_ori, size, args.noise_type, args.noise_scale)
+                z = ut.simulate_linear_sem(W_ori, size, args.noise_type, args.noise_scale, truncate=args.truncate)
 
             z_raw = torch.tensor(z).float().to(device)
 
@@ -383,13 +386,14 @@ def main():
         #         return loss
         
         if args.noise_type == 'gauss':
-            criterion = nn.MSELoss()
-            # criterion = CauchyNLLLoss()
+            # criterion = nn.MSELoss()
+            criterion = CauchyNLLLoss()
         elif args.noise_type == 'cauchy':
             # criterion = nn.MSELoss()
             criterion = CauchyNLLLoss()
         else:
-            criterion = nn.MSELoss()
+            # criterion = nn.MSELoss()
+            criterion = CauchyNLLLoss()
         linearredu = LinearRedu().to(device)
 
         optimizer = optim.Adam(linearredu.parameters(), lr=args.lr_redu_linear)
@@ -637,13 +641,14 @@ def main():
             def __init__(self):
                 # self.criterion = nn.MSELoss(reduction='mean')
                 if args.noise_type == 'gauss':
-                    self.criterion = nn.MSELoss(reduction='mean')
-                    # self.criterion = CauchyNLLLoss()
+                    # self.criterion = nn.MSELoss(reduction='mean')
+                    self.criterion = CauchyNLLLoss()
                 elif args.noise_type == 'cauchy':
                     # self.criterion = nn.MSELoss(reduction='mean')
                     self.criterion = CauchyNLLLoss()
                 else:
-                    self.criterion = nn.MSELoss(reduction='mean')
+                    # self.criterion = nn.MSELoss(reduction='mean')
+                    self.criterion = CauchyNLLLoss()
 
                 super().__init__(is_constrained=True)
 
@@ -874,7 +879,7 @@ def main():
                 mcc = mcc / args.z_n
                 mcc_s, cor_m_s = MCC(z_disentanglement, hz_disentanglement, args.z_n, True, args.use_floc) # z and z_hat_stage2
                 mcc_s = mcc_s / args.z_n
-                mind = linear_sum_assignment(-1 * cor_m)[1]
+                # mind = linear_sum_assignment(-1 * cor_m)[1]
 
                 mean_r2, r2_matrix, optimal_matches = elementwise_r2(z_disentanglement, hz_disentanglement)
                 log_elementwise_r2_heatmap(r2_matrix, title="Stage 2: Element-wise R2 Disentanglement")
@@ -1127,6 +1132,7 @@ def parse_args():
     parser.add_argument("--loss_prior_stage1", action="store_true")
     parser.add_argument("--loss_prior_stage2", action="store_true")
     parser.add_argument("--noise_scale", type=float, default=1.0)
+    parser.add_argument("--truncate", action="store_true", help="Clip Cauchy SEM noise to [-10, 10] in utils_latent.simulate_linear_sem")
     parser.add_argument("--use_spearman", action="store_true")
     parser.add_argument("--use_bn", action="store_true")
     parser.add_argument("--s1_gamma_nll", type=float, default=1.0)

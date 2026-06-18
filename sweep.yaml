@@ -1,0 +1,38 @@
+program: main_numerical.py
+method: grid
+# run_cap: 30
+metric:
+  goal: maximize
+  name: stage2/eval_mcc_spearman
+parameters:
+  noise-type:
+    value: 'cauchy'
+  z-n:
+    value: 10
+  n-mixing-layer:
+    value: 10
+  noise_scale:
+    value: 1
+  mask-dense:
+    value: 50
+  
+  mask-size:
+    value: 5
+  n-steps-redulinear:
+    value: 10001
+  n-steps:
+    value: 80001
+  
+
+  lr_redu_linear:
+    value: 1e-4
+  lr:
+    value: 1e-4
+  batch-size:
+    value: 8192
+  sparse-level:
+    value: 1
+  
+  # [12347, 45691, 87359]
+  seeds:
+    value: 12347

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=train
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=6:00:00
+#SBATCH --array=0-4                               # <--- Spawns 5 jobs (numbered 0 to 4)
+#SBATCH --output=logs/train_%A_%a.out             # <--- Saves logs as train_JOBID_ARRAYID.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate expo
+cd /home/xzhou2/Identi-pdGMM
+
+export WANDB_API_KEY=
+zn=3
+Mdense=50
+Msize=5
+m=5
+scale=1
+s2_steps=80001
+bs=12288
+s1_steps=10001
+lr_s1=0.00013361824486971915
+lr_s2=0.000025924279492738108
+# sparse=0.07042956224581153
+sparse=0.01
+
+# 1. Define all 10 seeds in a bash array
+ALL_SEEDS=(83920 15482 92743 61034 28571 74920 38194 50281 91736 46295)
+# ALL_SEEDS=(1 2 3 4 5 6 7 8 9 10)
+
+# 2. Calculate which 2 seeds this specific job should take based on its Array ID
+START_INDEX=$((SLURM_ARRAY_TASK_ID * 2))
+SEED_1=${ALL_SEEDS[$START_INDEX]}
+SEED_2=${ALL_SEEDS[$START_INDEX+1]}
+
+echo "Array Task ID: $SLURM_ARRAY_TASK_ID"
+echo "This node is running seeds: $SEED_1 and $SEED_2"
+
+# 3. Run the python script with just those 2 seeds
+python main_numerical.py --seeds $SEED_1 $SEED_2 --noise-type 'cauchy' --use_spearman --lr_redu_linear "$lr_s1" --lr "$lr_s2" --sparse-level "$sparse" --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --z-n "$zn" --x-n "$zn" --nn "$zn" --mask-dense "$Mdense" --n-mixing-layer "$m" --mask-size "$Msize"

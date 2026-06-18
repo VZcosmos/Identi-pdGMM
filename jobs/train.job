@@ -5,7 +5,7 @@
 #SBATCH --job-name=train
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=9
-#SBATCH --time=6:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/train_%j.out
 
 module purge
@@ -19,18 +19,65 @@ module load Anaconda3/2025.06-1
 source activate expo
 cd /home/xzhou2/Identi-pdGMM
 # pip install -r requirements.txt
-
-zn=10 
-theta=0 
-Gdense=1 
-Mdense=50  
-distance=0.0  
-m=10  
+# pip install wandb
+# pip install seaborn
+export WANDB_API_KEY=
 # python main_numerical.py --seeds 42 --noise-type 'gumbel' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'exp' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage1 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage2 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 # python main_numerical.py --seeds 42 --noise-type 'exp' --loss_prior_stage1 --loss_prior_stage2 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
 
-python main_numerical.py --seeds 42 --noise-type 'cauchy' --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
-python main_numerical.py --seeds 42 --noise-type 'cauchy' --loss_prior_stage1 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --n-steps "$s2_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 42 --noise-type 'cauchy' --loss_prior_stage1 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 1 --noise-type 'gauss' --use_bn --n-steps "$s2_steps" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense 50 --distance "$distance" --n-mixing-layer 10
+# python main_numerical.py --seeds 42 --noise-type 'cauchy' --lr_redu_linear 1e-5 --lr 5e-6 --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 42 --noise-type 'gumbel' --loss_prior_stage2 --use_bn --n-steps "$s2_steps" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense 50 --distance "$distance" --n-mixing-layer 10
+# python main_numerical.py --seeds 1 --noise-type 'gauss' --use_bn --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense 50 --distance "$distance" --n-mixing-layer 10
+
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 0.1 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 0.5 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 2 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 4 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 8 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --gamma_nll 16 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --s1_gamma_nll 8 --s2_gamma_nll 2 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --s1_gamma_nll 8 --s2_gamma_nll 0.5 --use_spearman --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+# python main_numerical.py --seeds 37 --noise-type 'cauchy' --s1_gamma_nll 8 --s2_gamma_nll 0.5 --use_floc --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+
+# python main_numerical.py --seeds 1 --noise-type 'gumbel' --use_bn --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --rotation "$theta" --z-n "$zn" --x-n "$zn" --nn "$zn" --DAG-dense "$Gdense" --mask-dense "$Mdense" --distance "$distance" --n-mixing-layer "$m"
+
+###Simple###
+zn=3
+m=1
+Mdense=1
+scale=1
+
+Msize=5
+s2_steps=160001
+s1_steps=10001
+
+bs=32768
+lr_s1=5e-5
+lr_s2=5e-5
+sparse=2
+
+###Complicate###
+# zn=10
+# m=10
+# Mdense=50
+# scale=1
+
+# Msize=5
+# s2_steps=160001
+# s1_steps=10001
+
+# bs=8192
+# lr_s1=1e-4
+# lr_s2=1e-4
+# sparse=2
+
+# [137, 521, 1049, 2027, 3187, 4441, 5821, 6967, 8111, 9901]
+# python main_numerical.py --seeds 12347 --noise-type 'cauchy' --lr_redu_linear "$lr_s1" --lr "$lr_s2" --sparse-level "$sparse" --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --z-n "$zn" --x-n "$zn" --nn "$zn" --mask-dense "$Mdense" --n-mixing-layer "$m" --mask-size "$Msize"
+python vade.py --seeds 32 --noise-type 'cauchy' --lr_redu_linear "$lr_s1" --lr "$lr_s2" --sparse-level "$sparse" --n-steps "$s2_steps" --n-steps-redulinear "$s1_steps" --batch-size "$bs" --noise_scale "$scale" --z-n "$zn" --x-n "$zn" --nn "$zn" --mask-dense "$Mdense" --n-mixing-layer "$m" --mask-size "$Msize"

@@ -78,7 +78,7 @@ def simulate_parameter(B, w_ranges=((-1.0, -0.2), (0.2, 1.0))):
     return W
 
 
-def simulate_linear_sem(W, n, sem_type, noise_scale=None):
+def simulate_linear_sem(W, n, sem_type, noise_scale=None, truncate=False):
     """Simulate samples from linear SEM with specified type of noise.
 
     For uniform, noise z ~ uniform(-a, a), where a = noise_scale.
@@ -88,12 +88,13 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
         n (int): num of samples, n=inf mimics population risk
         sem_type (str): gauss, exp, gumbel, uniform, logistic, poisson
         noise_scale (np.ndarray): scale parameter of additive noise, default all ones
+        truncate (bool): if True, clip Cauchy noise z to [-10, 10]
 
     Returns:
         X (np.ndarray): [n, d] sample matrix, [d, d] if n=inf
     """
 
-    def _simulate_single_equation(X, w, scale):
+    def _simulate_single_equation(X, w, scale, truncate=False):
         """X: [n, num of parents], w: [num of parents], x: [n]"""
         #w = w/np.sum(np.abs(w))
         if sem_type == 'gauss':
@@ -101,7 +102,8 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
             x = X @ w + z
         elif sem_type == 'cauchy':
             z = scale * np.random.standard_cauchy(size=n)
-            z = np.clip(z, -10, 10)
+            if truncate:
+                z = np.clip(z, -10, 10)
             x = X @ w + z
         elif sem_type == 'exp':
             z = np.random.exponential(scale=scale, size=n)
@@ -146,7 +148,7 @@ def simulate_linear_sem(W, n, sem_type, noise_scale=None):
     X = np.zeros([n, d])
     for j in ordered_vertices:
         parents = G.neighbors(j, mode=ig.IN)
-        X[:, j] = _simulate_single_equation(X[:, parents], W[parents, j], scale_vec[j])
+        X[:, j] = _simulate_single_equation(X[:, parents], W[parents, j], scale_vec[j], truncate=truncate)
     return X
 
 
@@ -158,6 +160,7 @@ def simulate_nonlinear_sem(B, W1, W2, n, sem_type, noise_scale=None): # need aff
         n (int): num of samples
         sem_type (str): mlp, mim, gp, gp-add
         noise_scale (np.ndarray): scale parameter of additive noise, default all ones
+        truncate (bool): if True, clip Cauchy noise z to [-10, 10]
 
     Returns:
         X (np.ndarray): [n, d] sample matrix

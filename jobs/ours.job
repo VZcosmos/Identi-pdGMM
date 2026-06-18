@@ -1,0 +1,117 @@
+#!/bin/bash
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=ours
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=72:00:00
+#SBATCH --array=0-1%2
+#SBATCH --output=logs/ours_%A_%a.out
+
+module purge
+module load 2025
+module load Anaconda3/2025.06-1
+
+source activate expo
+cd /home/xzhou2/Identi-pdGMM
+export WANDB_API_KEY=
+echo "job=$SLURM_JOB_ID array_task=$SLURM_ARRAY_TASK_ID"
+echo "node=$(hostname)"
+echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+nvidia-smi
+
+SEEDS=(137 520 1049 2027 3187) #4441 5821 6967 8111 9901
+
+case $SLURM_ARRAY_TASK_ID in
+
+# 0)
+#   for SEED in "${SEEDS[@]}"; do
+#     echo "Running ours_simple gumbel seed=$SEED"
+#     srun python ours_simple.py --seeds $SEED \
+#       --noise-type gumbel \
+#       --lr_redu_linear 1e-4 --lr 1e-4 \
+#       --sparse-level 0.01 \
+#       --n-steps 100001 --n-steps-redulinear 10001 \
+#       --batch-size 6144 \
+#       --noise_scale 1 \
+#       --z-n 3 --x-n 3 --nn 3 \
+#       --mask-dense 1 --n-mixing-layer 1 --mask-size 5
+#   done
+#   ;;
+
+# 1)
+#   for SEED in "${SEEDS[@]}"; do
+#     echo "Running ours_com gumbel seed=$SEED"
+#     srun python ours_com.py --seeds $SEED \
+#       --noise-type gumbel \
+#       --lr_redu_linear 1e-4 --lr 1e-4 \
+#       --sparse-level 0.01 \
+#       --n-steps 100001 --n-steps-redulinear 10001 \
+#       --batch-size 6144 \
+#       --noise_scale 1 \
+#       --z-n 10 --x-n 10 --nn 10 \
+#       --mask-dense 50 --n-mixing-layer 10 --mask-size 5
+#   done
+#   ;;
+
+0)
+  for SEED in "${SEEDS[@]}"; do
+    echo "Running ours_simple gauss seed=$SEED"
+    srun python ours_simple.py --seeds $SEED \
+      --noise-type gauss \
+      --lr_redu_linear 1e-4 --lr 1e-4 \
+      --sparse-level 0.01 \
+      --n-steps 100001 --n-steps-redulinear 10001 \
+      --batch-size 6144 \
+      --noise_scale 1 \
+      --z-n 3 --x-n 3 --nn 3 \
+      --mask-dense 1 --n-mixing-layer 1 --mask-size 5
+  done
+  ;;
+
+1)
+  for SEED in "${SEEDS[@]}"; do
+    echo "Running ours_com gauss seed=$SEED"
+    srun python ours_com.py --seeds $SEED \
+      --noise-type gauss \
+      --lr_redu_linear 1e-4 --lr 1e-4 \
+      --sparse-level 0.01 \
+      --n-steps 100001 --n-steps-redulinear 10001 \
+      --batch-size 6144 \
+      --noise_scale 1 \
+      --z-n 10 --x-n 10 --nn 10 \
+      --mask-dense 50 --n-mixing-layer 10 --mask-size 5
+  done
+  ;;
+
+# 4)
+#   for SEED in "${SEEDS[@]}"; do
+#     echo "Running ours_simple cauchy seed=$SEED"
+#     srun python ours_simple.py --seeds $SEED \
+#       --noise-type cauchy \
+#       --lr_redu_linear 5e-5 --lr 5e-5 \
+#       --sparse-level 2 \
+#       --n-steps 100001 --n-steps-redulinear 10001 \
+#       --batch-size 32768 \
+#       --noise_scale 1 \
+#       --z-n 3 --x-n 3 --nn 3 \
+#       --mask-dense 1 --n-mixing-layer 1 --mask-size 5
+#   done
+#   ;;
+
+# 5)
+#   for SEED in "${SEEDS[@]}"; do
+#     echo "Running ours_com cauchy seed=$SEED"
+#     srun python ours_com.py --seeds $SEED \
+#       --noise-type cauchy \
+#       --lr_redu_linear 1e-4 --lr 1e-4 \
+#       --sparse-level 2 \
+#       --n-steps 100001 --n-steps-redulinear 10001 \
+#       --batch-size 8192 \
+#       --noise_scale 1 \
+#       --z-n 10 --x-n 10 --nn 10 \
+#       --mask-dense 50 --n-mixing-layer 10 --mask-size 5
+#   done
+#   ;;
+
+esac

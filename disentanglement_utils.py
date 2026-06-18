@@ -18,7 +18,10 @@ def _disentanglement(z, hz, mode: __Mode = "r2", reorder=None):
     assert mode in ("r2", "accuracy")
 
     if mode == "r2":
-        return metrics.r2_score(z, hz), None
+        # return metrics.r2_score(z, hz), None
+        r2_raw = metrics.r2_score(z, hz, multioutput="raw_values")
+        r2_mean = metrics.r2_score(z, hz)
+        return (r2_mean, r2_raw), None
     elif mode == "accuracy":
         return metrics.accuracy_score(z, hz), None
 

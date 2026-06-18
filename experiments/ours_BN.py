@@ -39,13 +39,15 @@ def main():
 
     if args.n_mixing_layer == 1:
         mix_type = 'linear'
+        setting_name = 'Simple'
     else:
         mix_type = 'pw'
+        setting_name = 'Complicate'
     # args.model_dir = os.path.join("Outputs", args.noise_type)
     args.model_dir = os.path.join(
         "Outputs",
-        "Tune_Ours", # model
-        "Simple", # setting
+        "Ours_BN", # model
+        setting_name,
         f"{args.noise_type}"
     )
     os.makedirs(args.model_dir, exist_ok=True)
@@ -67,8 +69,8 @@ def main():
 
     for args.seed in args.seeds:
         wandb.init(
-            project="thesis",
-            name=f"Tune_Ours_Simple_{args.noise_type}_seed[{args.seed}]",
+            project="thesis_final",
+            name=f"Ours_BN_{setting_name}_{args.noise_type}_seed[{args.seed}]",
             config=vars(args),
             reinit=True
         )
@@ -330,8 +332,8 @@ def main():
                         (args.nn) * 50,
 
                     ],
-                    # output_normalization="bn",
-                    output_normalization="bn" if args.use_bn else None,
+                    output_normalization="bn",
+                    
                     # linear=True
                 )
 
@@ -347,7 +349,7 @@ def main():
                         (args.nn) * 50,
 
                     ],
-                    # output_normalization="bn",
+                    
                     # linear=True
                 )
 
@@ -383,13 +385,14 @@ def main():
         #         return loss
         
         if args.noise_type == 'gauss':
-            criterion = nn.MSELoss()
-            # criterion = CauchyNLLLoss()
+            # criterion = nn.MSELoss()
+            criterion = CauchyNLLLoss()
         elif args.noise_type == 'cauchy':
             # criterion = nn.MSELoss()
             criterion = CauchyNLLLoss()
         else:
-            criterion = nn.MSELoss()
+            # criterion = nn.MSELoss()
+            criterion = CauchyNLLLoss()
         linearredu = LinearRedu().to(device)
 
         optimizer = optim.Adam(linearredu.parameters(), lr=args.lr_redu_linear)
@@ -637,13 +640,14 @@ def main():
             def __init__(self):
                 # self.criterion = nn.MSELoss(reduction='mean')
                 if args.noise_type == 'gauss':
-                    self.criterion = nn.MSELoss(reduction='mean')
-                    # self.criterion = CauchyNLLLoss()
+                    # self.criterion = nn.MSELoss(reduction='mean')
+                    self.criterion = CauchyNLLLoss()
                 elif args.noise_type == 'cauchy':
                     # self.criterion = nn.MSELoss(reduction='mean')
                     self.criterion = CauchyNLLLoss()
                 else:
-                    self.criterion = nn.MSELoss(reduction='mean')
+                    # self.criterion = nn.MSELoss(reduction='mean')
+                    self.criterion = CauchyNLLLoss()
 
                 super().__init__(is_constrained=True)
 
@@ -763,8 +767,8 @@ def main():
                 (args.nn) * 10,
 
             ],
-            # output_normalization="bn",
-            output_normalization="bn" if args.use_bn else None,
+            output_normalization="bn",
+            
             linear=True
         )
 
@@ -781,7 +785,7 @@ def main():
                 (args.nn) * 10,
 
             ],
-            # output_normalization="bn",
+            
             linear=True
         )
 
@@ -874,7 +878,7 @@ def main():
                 mcc = mcc / args.z_n
                 mcc_s, cor_m_s = MCC(z_disentanglement, hz_disentanglement, args.z_n, True, args.use_floc) # z and z_hat_stage2
                 mcc_s = mcc_s / args.z_n
-                mind = linear_sum_assignment(-1 * cor_m)[1]
+                # mind = linear_sum_assignment(-1 * cor_m)[1]
 
                 mean_r2, r2_matrix, optimal_matches = elementwise_r2(z_disentanglement, hz_disentanglement)
                 log_elementwise_r2_heatmap(r2_matrix, title="Stage 2: Element-wise R2 Disentanglement")

@@ -36,6 +36,8 @@ def main():
 
     args.x_n = args.z_n
     args.nn = args.z_n
+    args.use_bn=True
+    args.loss_prior_stage2=True
 
     if args.n_mixing_layer == 1:
         mix_type = 'linear'
@@ -44,8 +46,8 @@ def main():
     # args.model_dir = os.path.join("Outputs", args.noise_type)
     args.model_dir = os.path.join(
         "Outputs",
-        "Tune_Ours", # model
-        "Simple", # setting
+        "Danru", # model
+        "Complicate", # setting
         f"{args.noise_type}"
     )
     os.makedirs(args.model_dir, exist_ok=True)
@@ -67,8 +69,8 @@ def main():
 
     for args.seed in args.seeds:
         wandb.init(
-            project="thesis",
-            name=f"Tune_Ours_Simple_{args.noise_type}_seed[{args.seed}]",
+            project="thesis_final",
+            name=f"Danru_Complicate_{args.noise_type}_seed[{args.seed}]",
             config=vars(args),
             reinit=True
         )
@@ -386,10 +388,11 @@ def main():
             criterion = nn.MSELoss()
             # criterion = CauchyNLLLoss()
         elif args.noise_type == 'cauchy':
-            # criterion = nn.MSELoss()
-            criterion = CauchyNLLLoss()
+            criterion = nn.MSELoss()
+            # criterion = CauchyNLLLoss()
         else:
             criterion = nn.MSELoss()
+            # criterion = CauchyNLLLoss()
         linearredu = LinearRedu().to(device)
 
         optimizer = optim.Adam(linearredu.parameters(), lr=args.lr_redu_linear)
@@ -640,10 +643,11 @@ def main():
                     self.criterion = nn.MSELoss(reduction='mean')
                     # self.criterion = CauchyNLLLoss()
                 elif args.noise_type == 'cauchy':
-                    # self.criterion = nn.MSELoss(reduction='mean')
-                    self.criterion = CauchyNLLLoss()
+                    self.criterion = nn.MSELoss(reduction='mean')
+                    # self.criterion = CauchyNLLLoss()
                 else:
                     self.criterion = nn.MSELoss(reduction='mean')
+                    # self.criterion = CauchyNLLLoss()
 
                 super().__init__(is_constrained=True)
 
@@ -664,69 +668,26 @@ def main():
                 # [K, mini_batch, z_n]
                 z_hat_g = z_hat.view(K, mini_batch, z_n)
 
-                if args.noise_type == 'cauchy':
-                    medians = torch.median(z_hat_g, dim=1).values  # [K, z_n]
-                    abs_diffs = torch.abs(z_hat_g - medians.unsqueeze(1))  # [K, mini_batch, z_n]
-                    mads = torch.median(abs_diffs, dim=1).values  # [K, z_n]
+                # mu_prior = 2: shape [1, 1, z_n]
+                mu_prior = torch.ones(1, 1, z_n, device=z_hat.device) * 2
 
-                    if args.oracle:
-                        # 1. Load the true masks [K, z_n]
-                        # mask=1 means active, mask=0 means masked
-                        mask_prior = torch.tensor(masks, device=z_hat.device, dtype=torch.float32)
-                        
-                        # 2. Invert the mask: 1 for masked dimensions, 0 for active dimensions
-                        penalty_mask = 1.0 - mask_prior
-                        
-                        # 3. Calculate loss ONLY on the masked dimensions
-                        # Since your masked values are exactly 0, target median and mad are 0.
-                        # Active dimensions are multiplied by 0, so the network is free to learn their true varying scales!
-                        stat_loss = (
-                            torch.mean(torch.abs(medians) * penalty_mask) +
-                            torch.mean(torch.abs(mads) * penalty_mask)
-                        )
-                        
-                        # Note: We use a multiplier (e.g., 10.0) to ensure the penalty is strong enough
-                        stat_loss = stat_loss * 10.0 
-                        
-                    else:
-                        # If you are NOT using the oracle, you cannot easily enforce MADs 
-                        # because every dimension has a different scale.
-                        # The safest option is to rely solely on your CauchyNLL reconstruction loss 
-                        # and the L1 sparsity penalty you defined later in the code.
-                        stat_loss = 0.0
-                    
-                else:
-                    # mu_prior = 2: shape [1, 1, z_n]
-                    mu_prior = torch.ones(1, 1, z_n, device=z_hat.device) * 2
+                diffs = z_hat_g - mu_prior  # [K, mini_batch, z_n]
 
-                    diffs = z_hat_g - mu_prior  # [K, mini_batch, z_n]
+                var = torch.mean(diffs ** 2, dim=(1, 2), keepdim=True)  # [K,1,1]
+                std = torch.sqrt(var + 1e-9)
 
-                    var = torch.mean(diffs ** 2, dim=(1, 2), keepdim=True)  # [K,1,1]
-                    std = torch.sqrt(var + 1e-9)
+                zscores = diffs / std  # [K, mini_batch, z_n]
 
-                    zscores = diffs / std  # [K, mini_batch, z_n]
+                skews = torch.mean(zscores ** 3, dim=1)       # [K, z_n]
+                kurtoses = torch.mean(zscores ** 4, dim=1)    # [K, z_n]
 
-                    skews = torch.mean(zscores ** 3, dim=1)       # [K, z_n]
-                    kurtoses = torch.mean(zscores ** 4, dim=1)    # [K, z_n]
+                target_skew, target_kurt = 0.0, 0.0
 
-                    if args.noise_type == 'gauss':
-                        target_skew, target_kurt = 0.0, 0.0
-                    elif args.noise_type == 'exp':
-                        target_skew, target_kurt = 2.0, 6.0
-                    elif args.noise_type == 'gumbel':
-                        target_skew, target_kurt = 1.14, 2.4
-                    else:
-                        raise ValueError
-
-                    # instead of doing mean on [z_n] then sum k groups, do mean on [k, z_n]
-                    stat_loss = (
-                        torch.mean(torch.abs(skews - target_skew)) +
-                        torch.mean(torch.abs(kurtoses - target_kurt))
-                    )
-                    # stat_loss = (
-                    #     torch.mean(torch.abs(skews - target_skew), dim=1).sum() +
-                    #     torch.mean(torch.abs(kurtoses - target_kurt), dim=1).sum()
-                    # )
+                # instead of doing mean on [z_n] then sum k groups, do mean on [k, z_n]
+                stat_loss = (
+                    torch.mean(torch.abs(skews - target_skew)) +
+                    torch.mean(torch.abs(kurtoses - target_kurt))
+                )
 
                 return loss + stat_loss
 
@@ -874,7 +835,7 @@ def main():
                 mcc = mcc / args.z_n
                 mcc_s, cor_m_s = MCC(z_disentanglement, hz_disentanglement, args.z_n, True, args.use_floc) # z and z_hat_stage2
                 mcc_s = mcc_s / args.z_n
-                mind = linear_sum_assignment(-1 * cor_m)[1]
+                # mind = linear_sum_assignment(-1 * cor_m)[1]
 
                 mean_r2, r2_matrix, optimal_matches = elementwise_r2(z_disentanglement, hz_disentanglement)
                 log_elementwise_r2_heatmap(r2_matrix, title="Stage 2: Element-wise R2 Disentanglement")
