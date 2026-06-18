@@ -1,0 +1,4 @@
+"Step","Group: VaDE_Complicate_cauchy - stage1/eval_r2","Group: VaDE_Complicate_cauchy - stage1/eval_r2__MIN","Group: VaDE_Complicate_cauchy - stage1/eval_r2__MAX","Group: Danru_Complicate_cauchy - stage1/eval_r2_standard","Group: Danru_Complicate_cauchy - stage1/eval_r2_standard__MIN","Group: Danru_Complicate_cauchy - stage1/eval_r2_standard__MAX","Group: Ours_Complicate_cauchy - stage1/eval_r2_standard","Group: Ours_Complicate_cauchy - stage1/eval_r2_standard__MIN","Group: Ours_Complicate_cauchy - stage1/eval_r2_standard__MAX"
+"10043","0.10814192246561771","0.040604985899505626","0.24231844103256367","","","","","",""
+"20042","","","","-0.3175873309935642","-1.2578160834095082","0.2980188015275514","-0.28209926300073157","-1.0807341037748297","0.3596417597664554"
+"20044","","","","-0.3650324654311144","-1.7504689078367348","0.5852323531732558","-0.7454226094668531","-1.7439182688860382","-0.14561375690287898"

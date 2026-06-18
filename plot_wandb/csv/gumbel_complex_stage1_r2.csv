@@ -1,0 +1,4 @@
+"Step","Group: VaDE_Complicate_gumbel - stage1/eval_r2","Group: VaDE_Complicate_gumbel - stage1/eval_r2__MIN","Group: VaDE_Complicate_gumbel - stage1/eval_r2__MAX","Group: Danru_Complicate_gumbel - stage1/eval_r2_standard","Group: Danru_Complicate_gumbel - stage1/eval_r2_standard__MIN","Group: Danru_Complicate_gumbel - stage1/eval_r2_standard__MAX","Group: Ours_Complicate_gumbel - stage1/eval_r2_standard","Group: Ours_Complicate_gumbel - stage1/eval_r2_standard__MIN","Group: Ours_Complicate_gumbel - stage1/eval_r2_standard__MAX"
+"10043","0.33736305311820847","0.28567722257631845","0.4061803944147025","","","","","",""
+"20042","","","","0.9258059091126348","0.9133933651067505","0.9502770560157563","0.9273422596543981","0.9176277411542472","0.9434240051412054"
+"20044","","","","0.9329274163231224","0.9151435678490923","0.9412124762142687","0.936674785275335","0.9109129877615212","0.9565867639073001"

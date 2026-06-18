@@ -1,0 +1,4 @@
+"Step","Group: VaDE_Complicate_gauss - stage1/eval_r2","Group: VaDE_Complicate_gauss - stage1/eval_r2__MIN","Group: VaDE_Complicate_gauss - stage1/eval_r2__MAX","Group: Danru_Complicate_gauss - stage1/eval_r2_standard","Group: Danru_Complicate_gauss - stage1/eval_r2_standard__MIN","Group: Danru_Complicate_gauss - stage1/eval_r2_standard__MAX","Group: Ours_Complicate_gauss - stage1/eval_r2_standard","Group: Ours_Complicate_gauss - stage1/eval_r2_standard__MIN","Group: Ours_Complicate_gauss - stage1/eval_r2_standard__MAX"
+"10043","0.32298311301897153","0.28437976823002215","0.411263268434667","","","","","",""
+"20042","","","","0.9591351650369303","0.9477848746342306","0.9653914488257452","0.8721513981491023","0.8463744823744189","0.9066888668477686"
+"20044","","","","0.9426747227266745","0.9181243985818097","0.9724355615058491","0.8785247991277308","0.8550101453796813","0.8947254051780404"
